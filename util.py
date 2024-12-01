@@ -35,7 +35,7 @@ def write_csv(results, output_path):
 
         for frame_nmr in results.keys():
             for car_id in results[frame_nmr].keys():
-                print(results[frame_nmr][car_id])
+                #print(results[frame_nmr][car_id])
                 if 'car' in results[frame_nmr][car_id].keys() and \
                    'license_plate' in results[frame_nmr][car_id].keys() and \
                    'text' in results[frame_nmr][car_id]['license_plate'].keys():
