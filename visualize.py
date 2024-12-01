@@ -4,6 +4,10 @@ import cv2
 import numpy as np
 import pandas as pd
 
+#Note: change these as needed
+fps = 30    # actual fps
+secs = 5    # number of seconds to process
+
 
 def draw_border(img, top_left, bottom_right, color=(0, 255, 0), thickness=10, line_length_x=200, line_length_y=200):
     x1, y1 = top_left
@@ -60,8 +64,9 @@ frame_nmr = -1
 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
 # read frames
+frame_nmr = -1
 ret = True
-while ret:
+while ret and frame_nmr < fps*secs:
     ret, frame = cap.read()
     frame_nmr += 1
     if ret:
