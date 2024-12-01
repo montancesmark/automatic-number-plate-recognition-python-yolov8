@@ -1,9 +1,15 @@
+import time 
+
 from ultralytics import YOLO
 import cv2
 
 import util
 from sort.sort import *
 from util import get_car, read_license_plate, write_csv
+
+#Note: change these as needed
+fps = 30    # actual fps
+secs = 5    # number of seconds to process
 
 
 results = {}
@@ -19,16 +25,23 @@ cap = cv2.VideoCapture('./sample.mp4')
 
 vehicles = [2, 3, 5, 7]
 
+# Initialize timer for total processing time
+start_time = time.time()
+frame_times = []  # List to track per-frame processing times
+
 # read frames
 frame_nmr = -1
 ret = True
-while ret:
+while ret and frame_nmr < fps * secs:
     frame_nmr += 1
     ret, frame = cap.read()
     if ret:
+        # Start timer for each frame
+        frame_start_time = time.time()
+
         results[frame_nmr] = {}
         # detect vehicles
-        detections = coco_model(frame)[0]
+        detections = coco_model(frame, verbose=False)[0]
         detections_ = []
         for detection in detections.boxes.data.tolist():
             x1, y1, x2, y2, score, class_id = detection
@@ -39,7 +52,7 @@ while ret:
         track_ids = mot_tracker.update(np.asarray(detections_))
 
         # detect license plates
-        license_plates = license_plate_detector(frame)[0]
+        license_plates = license_plate_detector(frame, verbose=False)[0]
         for license_plate in license_plates.boxes.data.tolist():
             x1, y1, x2, y2, score, class_id = license_plate
 
@@ -60,10 +73,28 @@ while ret:
 
                 if license_plate_text is not None:
                     results[frame_nmr][car_id] = {'car': {'bbox': [xcar1, ycar1, xcar2, ycar2]},
-                                                  'license_plate': {'bbox': [x1, y1, x2, y2],
+                                                'license_plate': {'bbox': [x1, y1, x2, y2],
                                                                     'text': license_plate_text,
                                                                     'bbox_score': score,
                                                                     'text_score': license_plate_text_score}}
+
+        # End frame timer and record the frame time
+        frame_end_time = time.time()
+        frame_time = frame_end_time - frame_start_time
+        frame_times.append(frame_time)
+
+        # You can set a threshold, e.g., 1 second per frame, to log any frame that takes too long
+        if frame_time > 1.0:  # 1 second is just an example threshold
+            print(f"Warning: Frame {frame_nmr} took {frame_time:.2f} seconds to process!")
+
+# Calculate and print the total processing time
+end_time = time.time()
+elapsed_time = end_time - start_time
+print(f"Total processing time for all frames: {elapsed_time:.2f} seconds")
+
+# Calculate and print average frame processing time
+avg_frame_time = sum(frame_times) / len(frame_times) if frame_times else 0
+print(f"Average frame processing time: {avg_frame_time:.2f} seconds")
 
 # write results
 write_csv(results, './test.csv')
