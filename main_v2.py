@@ -3,13 +3,13 @@ import numpy as np
 from ultralytics import YOLO
 import cv2
 
-import util
-from sort.sort import *
+import util 
+#from sort.sort import *
 from util import get_car, read_license_plate, write_csv
 
 # Configurable Parameters
 frame_time_threshold = 1.0  # Threshold for warning if frame processing time exceeds this value (seconds)
-processing_secs = 5  # Number of seconds to process
+processing_secs = 10  # Number of seconds to process
 
 # Initialize models with error handling
 try:
@@ -38,7 +38,7 @@ print(f"Video FPS: {fps}")
 frames_to_process = int(fps * processing_secs)
 
 results = {}
-mot_tracker = Sort()
+#mot_tracker = Sort()
 vehicles = [2, 3, 5, 7]  # Vehicle class IDs (e.g., car, truck, etc.)
 
 # Initialize timer for total processing time
@@ -59,15 +59,12 @@ while ret and frame_nmr < frames_to_process:
         results[frame_nmr] = {}
         try:
             # Detect vehicles
-            detections = coco_model(frame, verbose=False)[0]
+            detections = coco_model.track(frame, verbose=False, persist=True)[0]
             detections_ = []
             for detection in detections.boxes.data.tolist():
-                x1, y1, x2, y2, score, class_id = detection
+                x1, y1, x2, y2, track_id, score, class_id = detection
                 if int(class_id) in vehicles:
-                    detections_.append([x1, y1, x2, y2, score])
-
-            # Track vehicles
-            track_ids = mot_tracker.update(np.asarray(detections_))
+                    detections_.append([x1, y1, x2, y2, track_id])
 
             # Detect license plates
             license_plates = license_plate_detector(frame, verbose=False)[0]
@@ -75,7 +72,7 @@ while ret and frame_nmr < frames_to_process:
                 x1, y1, x2, y2, score, class_id = license_plate
 
                 # Assign license plate to car
-                xcar1, ycar1, xcar2, ycar2, car_id = get_car(license_plate, track_ids)
+                xcar1, ycar1, xcar2, ycar2, car_id = get_car(license_plate, detections_)
 
                 if car_id != -1:
                     # Crop license plate
